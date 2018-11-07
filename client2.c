@@ -1,21 +1,33 @@
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <sys/select.h>
 
 #define PORT 8888
 #define TRUE 1
+#define BUFMAX 1024
+
+void getinput(char *buffer, int *size);
 
 int main(int argc, char const *argv[])
 {
   struct sockaddr_in address;
-  int sock = 0, valread;
+  int sock = 0;
+  int valread;
   struct sockaddr_in serv_addr;
   char *hello = "Hello from client";
-  char buffer[1024] = {0};
+  char buf_send[BUFMAX] = {0};
+  char buf_rcv[BUFMAX] = {0};
+  int size;
+  int activity;
+
+  // set of socket descriptors.
+  fd_set readfds;
 
   if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
     printf("\n Socket creation error\n");
@@ -38,17 +50,48 @@ int main(int argc, char const *argv[])
     return -1;
   }
 
+
   // get and print greeting message
-  valread = read(sock, buffer, 1024);
-  printf("%s\n", buffer);
+  valread = read(sock, buf_rcv, BUFMAX);
+  printf("%s\n", buf_rcv);
+  memset(buf_rcv, 0, BUFMAX); // clear the buffer
 
   while(TRUE){
-    scanf("%s", buffer);
-    send(sock, buffer, strlen(buffer), 0);
-    //printf("Hello message sent\n");
-    valread = read(sock, buffer, 1024);
-    printf("%s\n", buffer);
+
+    // reset the fd_set
+    FD_ZERO(&readfds);
+    FD_SET(0, &readfds); // stdin
+    FD_SET(sock, &readfds);
+
+    activity = select(sock + 1, &readfds, NULL, NULL, NULL);
+    if(activity < 0) printf("select error");
+
+    // input from stdin
+    if(FD_ISSET(0, &readfds)){
+      getinput(buf_send, &size);
+      if(size > 1) send(sock, buf_send, size, 0);
+    }
+
+    // else it is input from server
+    else{
+      if((valread = read(sock, buf_rcv, BUFMAX)) > 0){
+        puts(buf_rcv);
+        memset(buf_rcv, 0, BUFMAX);
+      }
+    }
   }
 
   return 0;
+}
+
+void getinput(char *buffer, int *size)
+{
+  int i;
+  memset(buffer, 0, BUFMAX);
+  for(i = 0; i < BUFMAX - 1; i++){
+    buffer[i] = getchar();
+    if(buffer[i] == '\n') break;
+  }
+  buffer[i+1] = '\0';
+  *size = i;
 }

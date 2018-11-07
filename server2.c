@@ -17,7 +17,8 @@ int main(int argc, char *argv[])
 {
   int opt = TRUE;
   int master_socket, addrlen, new_socket, client_socket[30];
-  int max_clients = 30, activity, i, valread, sd;
+  int max_clients = 30, activity, valread, sd, sd_to;
+  int i, j;
   int max_sd;
   struct sockaddr_in address;
 
@@ -27,7 +28,7 @@ int main(int argc, char *argv[])
   fd_set readfds;
 
   // a message
-  char *message = "ECHO Daemon v1.0\r\n";
+  char *message = "Welcome to metou (me to you) v0.1\r\n";
 
   // initialise all client_socket[] to 0 so not checked
   for(i = 0; i < max_clients; i++){
@@ -149,10 +150,14 @@ int main(int argc, char *argv[])
 
         // echo back the message that came in
         else{
-          // set the string terminating NULL byte on the end
-          // of the data read
+          // set the string terminating NULL byte on the end of the data read
           buffer[valread] = '\0';
-          send(sd, buffer, strlen(buffer), 0);
+          // broadcast message
+          for(j = 0; j < max_clients; j++){
+            if(i == j) continue;
+            sd_to = client_socket[j];
+            send(sd_to, buffer, strlen(buffer), 0);
+          }
         }
       }
     }
