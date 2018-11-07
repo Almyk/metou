@@ -10,6 +10,8 @@
 
 #include <ncurses.h>
 
+#include <signal.h>
+
 #define PORT 8888
 #define TRUE 1
 #define BUFMAX 1024

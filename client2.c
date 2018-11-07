@@ -1,9 +1,12 @@
 #include "client2.h"
 
 void getinput(char *buffer, int *size);
+void sig_handler(int signo);
 
 int main(int argc, char const *argv[])
 {
+  initscr(); // start curses mode
+
   int sock = 0;
   int valread;
   struct sockaddr_in serv_addr;
@@ -12,8 +15,13 @@ int main(int argc, char const *argv[])
   int size;
   int activity;
 
+  if(signal(SIGINT, sig_handler) == SIG_ERR)
+    printf("Cant't catch SIGINT\n");
+
   // set of socket descriptors.
   fd_set readfds;
+
+  printw("test\n"); refresh();
 
   if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
     printf("\n Socket creation error\n");
@@ -70,6 +78,7 @@ int main(int argc, char const *argv[])
     }
   }
 
+  endwin();
   return 0;
 }
 
@@ -83,4 +92,13 @@ void getinput(char *buffer, int *size)
   }
   buffer[i+1] = '\0';
   *size = i;
+}
+
+void sig_handler(int signo)
+{
+  if(signo == SIGINT)
+  {
+    endwin();
+    exit(0);
+  }
 }
