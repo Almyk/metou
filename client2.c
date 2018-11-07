@@ -8,6 +8,8 @@
 #include <arpa/inet.h>
 #include <sys/select.h>
 
+#include <ncurses.h>
+
 #define PORT 8888
 #define TRUE 1
 #define BUFMAX 1024
@@ -16,11 +18,9 @@ void getinput(char *buffer, int *size);
 
 int main(int argc, char const *argv[])
 {
-  struct sockaddr_in address;
   int sock = 0;
   int valread;
   struct sockaddr_in serv_addr;
-  char *hello = "Hello from client";
   char buf_send[BUFMAX] = {0};
   char buf_rcv[BUFMAX] = {0};
   int size;
@@ -58,13 +58,16 @@ int main(int argc, char const *argv[])
 
   while(TRUE){
 
-    // reset the fd_set
-    FD_ZERO(&readfds);
-    FD_SET(0, &readfds); // stdin
-    FD_SET(sock, &readfds);
+    FD_ZERO(&readfds); // clear readfds
+    FD_SET(0, &readfds); // add stdin to readfds
+    FD_SET(sock, &readfds); // add socket to server
 
+    // listen for activity on readfds
     activity = select(sock + 1, &readfds, NULL, NULL, NULL);
-    if(activity < 0) printf("select error");
+    if(activity < 0){
+      printf("Error: select error");
+      continue;
+    }
 
     // input from stdin
     if(FD_ISSET(0, &readfds)){
