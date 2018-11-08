@@ -51,7 +51,7 @@ int main(int argc, char const *argv[])
   // get and print greeting message in bold and underlined
   valread = read(sock, buf_rcv, BUFMAX);
   attron(A_BOLD | A_UNDERLINE);
-  addstr(buf_rcv);
+  mvaddstr(0, col/2 - strlen(buf_rcv)/2, buf_rcv);
   attroff(A_BOLD | A_UNDERLINE);
 
   memset(buf_rcv, 0, BUFMAX); // clear the buffer
