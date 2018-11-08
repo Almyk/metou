@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
   fd_set readfds;
 
   // a message
-  char *message = "Welcome to metou (me to you) v0.1\r\n";
+  char *message = "Welcome to metou (me to you) v0.1\n";
 
   // initialise all client_socket[] to 0 so not checked
   for(i = 0; i < max_clients; i++){
