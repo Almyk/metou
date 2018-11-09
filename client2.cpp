@@ -146,9 +146,11 @@ void getinput(char *buffer, int *size)
     // if backspace is entered remove input
     if(temp == KEY_BACKSPACE)
     {
+      if(i == 0) break;
       delch();
       buffer[i--] = '\0';
       buffer[i--] = '\0';
+      if(i <= 0) break;
     }
     if(buffer[i] == '\n') break;
   }
