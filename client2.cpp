@@ -29,6 +29,8 @@ int main(int argc, char const *argv[])
   // init scroll and colors
   scrollok(chat_win, TRUE);
   init_pair(1, COLOR_GREEN, COLOR_BLACK);
+  init_pair(2, COLOR_RED, COLOR_BLACK);
+  init_pair(3, COLOR_BLACK, COLOR_WHITE);
 
 
   if(signal(SIGINT, sig_handler) == SIG_ERR)
@@ -65,7 +67,7 @@ int main(int argc, char const *argv[])
   // get and print greeting message in bold and underlined
   valread = read(sock, buf_rcv, BUFMAX);
   wattron(info_win, A_BOLD | A_UNDERLINE);
-  printinput(buf_rcv, 1, COLS/2 - strlen(buf_rcv)/2, info_win);
+  printinput(buf_rcv, 1, COLS/2 - strlen(buf_rcv)/2, info_win, 2);
   wattroff(info_win, A_BOLD | A_UNDERLINE);
   box(info_win, 0, 0);
   wrefresh(info_win);
@@ -132,16 +134,26 @@ int main(int argc, char const *argv[])
 void getinput(char *buffer, int *size)
 {
   int i;
+  int temp;
   memset(buffer, 0, BUFMAX);
   for(i = 0; i < BUFMAX-1; i++)
   {
-    buffer[i] = getch();
+    // TODO: make this into a switch statement
+
+    temp = getch();
+    buffer[i] = temp;
+    
+    // if backspace is entered remove input
+    if(temp == KEY_BACKSPACE)
+    {
+      delch();
+      buffer[i--] = '\0';
+      buffer[i--] = '\0';
+    }
     if(buffer[i] == '\n') break;
   }
   buffer[i] = '\0';
   *size = i;
-  //move(LINES-1,1);
-  //for(i = 0; i < COLS-2; i++) printw("%c", ' ');
 }
 
 void printinput(char *buffer, int row, int col, WINDOW *win, short color)
@@ -155,9 +167,7 @@ void printinput(char *buffer, int row, int col, WINDOW *win, short color)
 void sig_handler(int signo)
 {
   if(signo == SIGINT)
-  {
     p_exit();
-  }
 }
 
 void p_exit(void)
