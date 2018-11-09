@@ -4,7 +4,6 @@ int main(int argc, char const *argv[])
 {
   initscr(); // start curses mode
   start_color();
-  init_pair(1, COLOR_GREEN, COLOR_BLACK);
   cbreak();
   keypad(stdscr, TRUE);
 
@@ -20,10 +19,16 @@ int main(int argc, char const *argv[])
 
   // setup the rows
   getmaxyx(stdscr, row, col);
-  cur_r = 1; cur_c = 0;
+  cur_r = 1; cur_c = 1;
 
   // windows
   WINDOW * input_win = create_newwin(3, COLS, LINES-2, 0);
+  WINDOW * chat_win = create_newwin(LINES-5, COLS, 3, 0);
+  WINDOW * info_win = create_newwin(3, COLS, 0, 0);
+
+  // init scroll and colors
+  scrollok(chat_win, TRUE);
+  init_pair(1, COLOR_GREEN, COLOR_BLACK);
 
 
   if(signal(SIGINT, sig_handler) == SIG_ERR)
@@ -33,7 +38,8 @@ int main(int argc, char const *argv[])
   // set of socket descriptors.
   fd_set readfds;
 
-  if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+  if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+  {
     printw("\n Socket creation error\n");
     return -1;
   }
@@ -44,21 +50,25 @@ int main(int argc, char const *argv[])
   serv_addr.sin_port = htons(PORT);
 
   // convert ipv4 and ipv6 addresses from text to binary form
-  if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0){
+  if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0)
+  {
     printw("\nInvalid address/ Address not supported\n");
     return -1;
   }
 
-  if(connect(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
+  if(connect(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+  {
     printw("\nConnection failed\n");
     return -1;
   }
 
   // get and print greeting message in bold and underlined
   valread = read(sock, buf_rcv, BUFMAX);
-  attron(A_BOLD | A_UNDERLINE);
-  mvaddstr(0, col/2 - strlen(buf_rcv)/2, buf_rcv);
-  attroff(A_BOLD | A_UNDERLINE);
+  wattron(info_win, A_BOLD | A_UNDERLINE);
+  printinput(buf_rcv, 1, COLS/2 - strlen(buf_rcv)/2, info_win);
+  wattroff(info_win, A_BOLD | A_UNDERLINE);
+  box(info_win, 0, 0);
+  wrefresh(info_win);
 
   memset(buf_rcv, 0, BUFMAX); // clear the buffer
 
@@ -73,24 +83,43 @@ int main(int argc, char const *argv[])
 
     // listen for activity on readfds
     activity = select(sock + 1, &readfds, NULL, NULL, NULL);
-    if(activity < 0){
+    if(activity < 0)
+    {
       //printw("Error: select error");
       continue;
     }
 
     // input from stdin
-    if(FD_ISSET(0, &readfds)){
+    if(FD_ISSET(0, &readfds))
+    {
       getinput(buf_send, &size);
-      printinput(buf_send, cur_r++, cur_c, 1);
-      if(cur_r == row - 1) cur_r--;
-      if(size > 0) send(sock, buf_send, size, 0);
+      wclear(input_win);
+      box(input_win, 0, 0);
+      wrefresh(input_win);
+        
+      if(size > 0)
+      {
+        if(cur_r == row - 6)
+        {
+          scrollwin(chat_win, 1);
+          cur_r--;
+        }
+        printinput(buf_send, cur_r++, cur_c, chat_win, 1);
+        send(sock, buf_send, size, 0);
+      }
     }
 
     // else it is input from server
-    else{
-      if((valread = read(sock, buf_rcv, BUFMAX)) > 0){
-        printinput(buf_rcv, cur_r++, cur_c);
-        if(cur_r == row - 1) cur_r--;
+    else
+    {
+      if((valread = read(sock, buf_rcv, BUFMAX)) > 0)
+      {
+        if(cur_r == row - 6)
+        {
+          scrollwin(chat_win, 1);
+          cur_r--;
+        }
+        printinput(buf_rcv, cur_r++, cur_c, chat_win);
         memset(buf_rcv, 0, BUFMAX);
       }
     }
@@ -104,21 +133,23 @@ void getinput(char *buffer, int *size)
 {
   int i;
   memset(buffer, 0, BUFMAX);
-  for(i = 0; i < BUFMAX-1; i++){
+  for(i = 0; i < BUFMAX-1; i++)
+  {
     buffer[i] = getch();
     if(buffer[i] == '\n') break;
   }
   buffer[i] = '\0';
   *size = i;
-  move(LINES-1,1);
-  for(i = 0; i < COLS-2; i++) printw("%c", ' ');
+  //move(LINES-1,1);
+  //for(i = 0; i < COLS-2; i++) printw("%c", ' ');
 }
 
-void printinput(char *buffer, int row, int col, short color)
+void printinput(char *buffer, int row, int col, WINDOW *win, short color)
 {
-  attron(COLOR_PAIR(color));
-  mvaddstr(row, col, buffer);
-  attroff(COLOR_PAIR(color));
+  wattron(win, COLOR_PAIR(color));
+  mvwaddstr(win, row, col, buffer);
+  wrefresh(win);
+  wattroff(win, COLOR_PAIR(color));
 }
 
 void sig_handler(int signo)
@@ -143,4 +174,12 @@ WINDOW * create_newwin(int height, int width, int starty, int startx)
   box(new_win, 0, 0);
   wrefresh(new_win);
   return new_win;
+}
+
+void scrollwin(WINDOW *win, int n)
+{
+  wborder(win, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+  wscrl(win, 1);
+  box(win, 0, 0);
+  wrefresh(win);
 }

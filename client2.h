@@ -18,7 +18,8 @@
 #define BUFMAX 1024
 
 void getinput(char *buffer, int *size);
-void printinput(char *buffer, int row, int col, short color = 0);
+void printinput(char *buffer, int row, int col, WINDOW* win, short color = 0);
 void sig_handler(int signo);
 void p_exit(void);
 WINDOW * create_newwin(int height, int width, int starty, int startx);
+void scrollwin(WINDOW *win, int n);
