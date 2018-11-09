@@ -143,29 +143,30 @@ int getinput(char *buffer, int *size)
   int temp;
   int done = 0;
   if(i == 0) memset(buffer, 0, BUFMAX);
-    // TODO: make this into a switch statement
 
-  temp = getch();
-  
-  // if backspace is entered remove input
-  if(temp == KEY_BACKSPACE)
+  switch(temp = getch())
   {
+  case KEY_BACKSPACE:
+    // if backspace is entered remove input
     delch();
     i--;
     buffer[i] = '\0';
-  }
-  else if(temp == '\n')
-  {
+    break;
+
+  case '\n':
+    // on newline we send buffer to server
+    if(i == 0) break;
     buffer[i] = '\0';
     done = 1;
     i = 0;
-  }
-  else
-  {
+    break;
+
+  default:
     buffer[i] = temp;
     i++;
     *size = i;
   }
+
   return done;
 }
 
