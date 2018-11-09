@@ -16,6 +16,7 @@ int main(int argc, char const *argv[])
   int activity;
   int row, col;
   int cur_r, cur_c;
+  int done = 0;
 
   // setup the rows
   getmaxyx(stdscr, row, col);
@@ -74,9 +75,10 @@ int main(int argc, char const *argv[])
 
   memset(buf_rcv, 0, BUFMAX); // clear the buffer
 
+  move(row-1,1);
   while(TRUE){
     getmaxyx(stdscr, row, col); // macro, not a function
-    move(row-1,1);
+    //move(row-1,1);
     refresh();
 
     FD_ZERO(&readfds); // clear readfds
@@ -94,20 +96,24 @@ int main(int argc, char const *argv[])
     // input from stdin
     if(FD_ISSET(0, &readfds))
     {
-      getinput(buf_send, &size);
-      wclear(input_win);
-      box(input_win, 0, 0);
-      wrefresh(input_win);
-        
-      if(size > 0)
+      done = getinput(buf_send, &size);
+      if(done == 1)
       {
-        if(cur_r == row - 6)
+        wclear(input_win);
+        box(input_win, 0, 0);
+        wrefresh(input_win);
+          
+        if(size > 0)
         {
-          scrollwin(chat_win, 1);
-          cur_r--;
+          if(cur_r == row - 6)
+          {
+            scrollwin(chat_win, 1);
+            cur_r--;
+          }
+          printinput(buf_send, cur_r++, cur_c, chat_win, 1);
+          send(sock, buf_send, size, 0);
         }
-        printinput(buf_send, cur_r++, cur_c, chat_win, 1);
-        send(sock, buf_send, size, 0);
+        move(row-1,1);
       }
     }
 
@@ -131,31 +137,36 @@ int main(int argc, char const *argv[])
   return 0;
 }
 
-void getinput(char *buffer, int *size)
+int getinput(char *buffer, int *size)
 {
-  int i;
+  static int i = 0;
   int temp;
-  memset(buffer, 0, BUFMAX);
-  for(i = 0; i < BUFMAX-1; i++)
-  {
+  int done = 0;
+  if(i == 0) memset(buffer, 0, BUFMAX);
     // TODO: make this into a switch statement
 
-    temp = getch();
-    buffer[i] = temp;
-    
-    // if backspace is entered remove input
-    if(temp == KEY_BACKSPACE)
-    {
-      if(i == 0) break;
-      delch();
-      buffer[i--] = '\0';
-      buffer[i--] = '\0';
-      if(i <= 0) break;
-    }
-    if(buffer[i] == '\n') break;
+  temp = getch();
+  
+  // if backspace is entered remove input
+  if(temp == KEY_BACKSPACE)
+  {
+    delch();
+    i--;
+    buffer[i] = '\0';
   }
-  buffer[i] = '\0';
-  *size = i;
+  else if(temp == '\n')
+  {
+    buffer[i] = '\0';
+    done = 1;
+    i = 0;
+  }
+  else
+  {
+    buffer[i] = temp;
+    i++;
+    *size = i;
+  }
+  return done;
 }
 
 void printinput(char *buffer, int row, int col, WINDOW *win, short color)

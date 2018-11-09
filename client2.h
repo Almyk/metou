@@ -17,7 +17,7 @@
 #define FALSE 0
 #define BUFMAX 1024
 
-void getinput(char *buffer, int *size);
+int getinput(char *buffer, int *size);
 void printinput(char *buffer, int row, int col, WINDOW* win, short color = 0);
 void sig_handler(int signo);
 void p_exit(void);
