@@ -101,8 +101,13 @@ int main(int argc, char *argv[])
       // send new connection greeting message
       if(send(new_socket, message, strlen(message), 0) != strlen(message))
         perror("send");
-
       puts("Welcome message sent successfully");
+
+      for(j = 0; j <= max_sd; j++){
+        if(j == new_socket || j == master_socket) continue;
+        if(FD_ISSET(j, &master_set))
+          send(j, "C", sizeof(char), 0);
+      }
 
       // add new user to master_set
       FD_SET(new_socket, &master_set);
@@ -144,7 +149,7 @@ int main(int argc, char *argv[])
                   for(j = 0; j <= max_sd; j++){
                     if(j == i || j == master_socket) continue;
                     if(FD_ISSET(j, &master_set))
-                      send(j, buffer+1, strlen(buffer), 0);
+                      send(j, buffer, strlen(buffer), 0);
                   }
                   break;
             } // switch IO

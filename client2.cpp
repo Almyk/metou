@@ -77,7 +77,8 @@ int main(int argc, char const *argv[])
   memset(buf_rcv, 0, BUFMAX); // clear the buffer
 
   move(row-1,1);
-  while(TRUE){
+  while(TRUE)
+  {
     getmaxyx(stdscr, row, col); // macro, not a function
     refresh();
 
@@ -122,13 +123,28 @@ int main(int argc, char const *argv[])
     {
       if((valread = read(sock, buf_rcv, BUFMAX)) > 0)
       {
-        if(cur_r == row - 6)
+        // TODO: make this into a function for handling diff IO requests
+        switch(buf_rcv[0])
         {
-          scrollwin(chat_win, 1);
-          cur_r--;
+          case 'M': // incoming message
+            if(cur_r == row - 6)
+            {
+              scrollwin(chat_win, 1);
+              cur_r--;
+            }
+            printinput(buf_rcv+1, cur_r++, cur_c, chat_win);
+            memset(buf_rcv, 0, BUFMAX);
+            break;
+          case 'C': // new connection count
+            if(cur_r == row - 6)
+            {
+              scrollwin(chat_win, 1);
+              cur_r--;
+            }
+            char newusr[] = "New user connected";
+            printinput(newusr, cur_r++, cur_c, chat_win, 2);
+            break;
         }
-        printinput(buf_rcv, cur_r++, cur_c, chat_win);
-        memset(buf_rcv, 0, BUFMAX);
       }
     }
   }
