@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
   int activity, valread, sd;
   int i, j;
   int max_sd;
+  int conn_count = 0;
   struct sockaddr_in address;
 
   char buffer[1024];
@@ -107,6 +108,7 @@ int main(int argc, char *argv[])
       FD_SET(new_socket, &master_set);
       if(new_socket > max_sd)
         max_sd = new_socket;
+      conn_count++;
       printf("Adding to master set of sockets as %d\n", new_socket);
     }
     else{
@@ -118,6 +120,7 @@ int main(int argc, char *argv[])
         if(FD_ISSET(sd, &readfds)){
           // read the incoming message
           // and check if it was for closing,
+          // TODO: make this into a function handling diff kinds of IO requests
           if((valread = read(sd, buffer, 1024)) == 0){
             // somebody disconnected, get his details and print
             getpeername(sd, (struct sockaddr*) &address,
@@ -128,22 +131,27 @@ int main(int argc, char *argv[])
             // close the socket and remove from master_set
             close(sd);
             FD_CLR(i, &master_set);
+            conn_count--;
           }
 
           // echo back the message that came in
           else{
             // set the string terminating NULL byte on the end of the data read
             buffer[valread] = '\0';
-            // broadcast message to all sockets in master_set
-            for(j = 0; j <= max_sd; j++){
-              if(j == i || j == master_socket) continue;
-              if(FD_ISSET(j, &master_set))
-                send(j, buffer, strlen(buffer), 0);
-            }
-          }
-        }
-      }
-    }
+
+            switch(buffer[0]){
+              case 'M': // broadcast message to all sockets in master_set
+                  for(j = 0; j <= max_sd; j++){
+                    if(j == i || j == master_socket) continue;
+                    if(FD_ISSET(j, &master_set))
+                      send(j, buffer+1, strlen(buffer), 0);
+                  }
+                  break;
+            } // switch IO
+          } // else IO operation
+        } // if FD_ISSET()
+      } // for loop finding socket
+    } // else incoming IO request or close connection
   }
 
   return 0;

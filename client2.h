@@ -15,7 +15,7 @@
 #define PORT 8888
 #define TRUE 1
 #define FALSE 0
-#define BUFMAX 1024
+#define BUFMAX 512
 
 int getinput(char *buffer, int *size);
 void printinput(char *buffer, int row, int col, WINDOW* win, short color = 0);

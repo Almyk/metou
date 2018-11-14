@@ -110,7 +110,7 @@ int main(int argc, char const *argv[])
             scrollwin(chat_win, 1);
             cur_r--;
           }
-          printinput(buf_send, cur_r++, cur_c, chat_win, 1);
+          printinput(buf_send+1, cur_r++, cur_c, chat_win, 1);
           send(sock, buf_send, size, 0);
         }
         move(row-1,1);
@@ -142,29 +142,34 @@ int getinput(char *buffer, int *size)
   static int i = 0;
   int temp;
   int done = 0;
-  if(i == 0) memset(buffer, 0, BUFMAX);
+
+  if(i == 0)
+  {
+    memset(buffer, 0, BUFMAX);
+    buffer[0] = 'M';
+  }
 
   switch(temp = getch())
   {
   case KEY_BACKSPACE:
     // if backspace is entered remove input
     delch();
-    i--;
     buffer[i] = '\0';
+    i--;
     break;
 
   case '\n':
     // on newline we send buffer to server
     if(i == 0) break;
-    buffer[i] = '\0';
+    buffer[i+1] = '\0';
     done = 1;
     i = 0;
     break;
 
   default:
-    buffer[i] = temp;
     i++;
-    *size = i;
+    buffer[i] = temp;
+    *size = i+1;
   }
 
   return done;
