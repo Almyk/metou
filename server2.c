@@ -86,7 +86,8 @@ int main(int argc, char *argv[])
 
     // if something happened on the master socket,
     // then it is an incoming connection
-    if(FD_ISSET(master_socket, &readfds)){
+    if(FD_ISSET(master_socket, &readfds))
+    {
       if((new_socket = accept(master_socket,
               (struct sockaddr *) &address, (socklen_t*) &addrlen)) < 0)
       {
@@ -103,30 +104,39 @@ int main(int argc, char *argv[])
         perror("send");
       puts("Welcome message sent successfully");
 
-      for(j = 0; j <= max_sd; j++){
-        if(j == new_socket || j == master_socket) continue;
-        if(FD_ISSET(j, &master_set))
-          send(j, "C", sizeof(char), 0);
-      }
-
       // add new user to master_set
       FD_SET(new_socket, &master_set);
       if(new_socket > max_sd)
         max_sd = new_socket;
       conn_count++;
       printf("Adding to master set of sockets as %d\n", new_socket);
+      // TODO: send user count and new username when username is implemented
+      // inform users that a new connection was made
+      for(j = 0; j <= max_sd; j++)
+      {
+        if(j == master_socket) continue;
+        if(FD_ISSET(j, &master_set))
+        {
+          char tmp[] = {'C', (char)conn_count, '\0'};
+          send(j, tmp , sizeof(char)*3, 0);
+        }
+      }
     }
-    else{
+
+    else
+    {
 
     // else it is some IO operation on some other socket
-      for(i = 0; i <= max_sd; i++){
+      for(i = 0; i <= max_sd; i++)
+      {
         sd = i;
 
-        if(FD_ISSET(sd, &readfds)){
+        if(FD_ISSET(sd, &readfds))
+        {
           // read the incoming message
           // and check if it was for closing,
-          // TODO: make this into a function handling diff kinds of IO requests
-          if((valread = read(sd, buffer, 1024)) == 0){
+          if((valread = read(sd, buffer, 1024)) == 0)
+          {
             // somebody disconnected, get his details and print
             getpeername(sd, (struct sockaddr*) &address,
                 (socklen_t*) &addrlen);
@@ -137,13 +147,27 @@ int main(int argc, char *argv[])
             close(sd);
             FD_CLR(i, &master_set);
             conn_count--;
+            
+            // TODO: send disconnected username when username is implemented
+            // inform users that someone disconnected
+            for(j = 0; j <= max_sd; j++)
+            {
+              if(j == master_socket) continue;
+              if(FD_ISSET(j, &master_set))
+              {
+                char tmp[] = {'D', (char)conn_count, '\0'};
+                send(j, tmp , sizeof(char)*3, 0);
+              }
+            }
           }
 
           // echo back the message that came in
-          else{
+          else
+          {
             // set the string terminating NULL byte on the end of the data read
             buffer[valread] = '\0';
 
+          // TODO: make this into a function handling diff kinds of IO requests
             switch(buffer[0]){
               case 'M': // broadcast message to all sockets in master_set
                   for(j = 0; j <= max_sd; j++){

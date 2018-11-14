@@ -18,6 +18,10 @@ int main(int argc, char const *argv[])
   int cur_r, cur_c;
   int done = 0;
 
+  // strings
+  char newusr[] = "New user connected";
+  char disc[] = "User disconnected";
+
   // setup the rows
   getmaxyx(stdscr, row, col);
   cur_r = 1; cur_c = 1;
@@ -69,7 +73,7 @@ int main(int argc, char const *argv[])
   // get and print greeting message in bold and underlined
   valread = read(sock, buf_rcv, BUFMAX);
   wattron(info_win, A_BOLD | A_UNDERLINE);
-  printinput(buf_rcv, 1, COLS/2 - strlen(buf_rcv)/2, info_win, 2);
+  printinput_s(buf_rcv, 1, COLS/2 - strlen(buf_rcv)/2, info_win, 2);
   wattroff(info_win, A_BOLD | A_UNDERLINE);
   box(info_win, 0, 0);
   wrefresh(info_win);
@@ -111,7 +115,7 @@ int main(int argc, char const *argv[])
             scrollwin(chat_win, 1);
             cur_r--;
           }
-          printinput(buf_send+1, cur_r++, cur_c, chat_win, 1);
+          printinput_s(buf_send+1, cur_r++, cur_c, chat_win, 1);
           send(sock, buf_send, size, 0);
         }
         move(row-1,1);
@@ -132,8 +136,7 @@ int main(int argc, char const *argv[])
               scrollwin(chat_win, 1);
               cur_r--;
             }
-            printinput(buf_rcv+1, cur_r++, cur_c, chat_win);
-            memset(buf_rcv, 0, BUFMAX);
+            printinput_s(buf_rcv+1, cur_r++, cur_c, chat_win);
             break;
           case 'C': // new connection count
             if(cur_r == row - 6)
@@ -141,10 +144,20 @@ int main(int argc, char const *argv[])
               scrollwin(chat_win, 1);
               cur_r--;
             }
-            char newusr[] = "New user connected";
-            printinput(newusr, cur_r++, cur_c, chat_win, 2);
+            printinput_s(newusr, cur_r++, cur_c, chat_win, 2);
+            printinput_ctoi(buf_rcv[1], 1, COLS-5, info_win, 2);
+            break;
+          case 'D': // user disconnected
+            if(cur_r == row - 6)
+            {
+              scrollwin(chat_win, 1);
+              cur_r--;
+            }
+            printinput_s(disc, cur_r++, cur_c, chat_win, 2);
+            printinput_ctoi(buf_rcv[1], 1, COLS-5, info_win, 2);
             break;
         }
+        memset(buf_rcv, 0, BUFMAX);
       }
     }
   }
@@ -191,10 +204,20 @@ int getinput(char *buffer, int *size)
   return done;
 }
 
-void printinput(char *buffer, int row, int col, WINDOW *win, short color)
+void printinput_s(char *buffer, int row, int col, WINDOW *win, short color)
 {
+  // prints a string
   wattron(win, COLOR_PAIR(color));
   mvwaddstr(win, row, col, buffer);
+  wrefresh(win);
+  wattroff(win, COLOR_PAIR(color));
+}
+
+void printinput_ctoi(char c, int row, int col, WINDOW *win, short color)
+{
+  // accepts a character and casts it to an int
+  wattron(win, COLOR_PAIR(color));
+  mvwprintw(win, row, col, "%d", (unsigned)c);
   wrefresh(win);
   wattroff(win, COLOR_PAIR(color));
 }
