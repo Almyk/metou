@@ -22,7 +22,7 @@ int main(int argc, char const *argv[])
   getmaxyx(stdscr, row, col);
   cur_r = 1; cur_c = 1;
 
-  // windows
+  // window creations
   WINDOW * input_win = create_newwin(3, COLS, LINES-2, 0);
   WINDOW * chat_win = create_newwin(LINES-5, COLS, 3, 0);
   WINDOW * info_win = create_newwin(3, COLS, 0, 0);
@@ -44,7 +44,8 @@ int main(int argc, char const *argv[])
   if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
   {
     printw("\n Socket creation error\n");
-    return -1;
+    getch();
+    p_exit();
   }
 
   memset(&serv_addr, '0', sizeof(serv_addr));
@@ -56,13 +57,13 @@ int main(int argc, char const *argv[])
   if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0)
   {
     printw("\nInvalid address/ Address not supported\n");
-    return -1;
+    p_exit();
   }
 
   if(connect(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
   {
     printw("\nConnection failed\n");
-    return -1;
+    p_exit();
   }
 
   // get and print greeting message in bold and underlined
@@ -78,7 +79,6 @@ int main(int argc, char const *argv[])
   move(row-1,1);
   while(TRUE){
     getmaxyx(stdscr, row, col); // macro, not a function
-    //move(row-1,1);
     refresh();
 
     FD_ZERO(&readfds); // clear readfds

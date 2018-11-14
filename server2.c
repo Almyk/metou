@@ -16,8 +16,8 @@
 int main(int argc, char *argv[])
 {
   int opt = TRUE;
-  int master_socket, addrlen, new_socket, client_socket[30];
-  int max_clients = 30, activity, valread, sd, sd_to;
+  int master_socket, addrlen, new_socket;
+  int activity, valread, sd;
   int i, j;
   int max_sd;
   struct sockaddr_in address;
@@ -25,15 +25,11 @@ int main(int argc, char *argv[])
   char buffer[1024];
 
   // set of socket descriptors
+  fd_set master_set;
   fd_set readfds;
 
   // a message
   char *message = "Welcome to metou (me to you) v0.1\n";
-
-  // initialise all client_socket[] to 0 so not checked
-  for(i = 0; i < max_clients; i++){
-    client_socket[i] = 0;
-  }
 
   // create a master socket
   if((master_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0){
@@ -67,29 +63,18 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
+  // setup the master_set
+  FD_SET(master_socket, &master_set);
+  max_sd = master_socket;
+
   // accept the incoming connection
   addrlen = sizeof(address);
   puts("Waiting for connections ...");
 
   while(TRUE){
-    // clear the socket set
-    FD_ZERO(&readfds);
+    // copy master_set to readfds
+    readfds = master_set;
 
-    // add master socket to set
-    FD_SET(master_socket, &readfds);
-    max_sd = master_socket;
-
-    // add child sockets to set
-    for(i = 0; i < max_clients; i++){
-      // socket descriptor
-      sd = client_socket[i];
-
-      // if valid socket descriptor then add to read list
-      if(sd > 0) FD_SET(sd, &readfds);
-
-      // highest file descriptor number, need it for the select function
-      if(sd > max_sd) max_sd = sd;
-    }
     
     // wait for an activity on one of the sockets, timeout is NULL
     // so wait indefinitely
@@ -117,46 +102,44 @@ int main(int argc, char *argv[])
         perror("send");
 
       puts("Welcome message sent successfully");
-      
-      // add new socket to array of sockets
-      for(i = 0; i < max_clients; i++){
-        // if position is empty
-        if(client_socket[i] == 0){
-          client_socket[i] = new_socket;
-          printf("Adding to list of sockets as %d\n", i);
-          break;
-        }
-      }
+
+      // add new user to master_set
+      FD_SET(new_socket, &master_set);
+      if(new_socket > max_sd)
+        max_sd = new_socket;
+      printf("Adding to master set of sockets as %d\n", new_socket);
     }
+    else{
 
     // else it is some IO operation on some other socket
-    for(i = 0; i < max_clients; i++){
-      sd = client_socket[i];
+      for(i = 0; i <= max_sd; i++){
+        sd = i;
 
-      if(FD_ISSET(sd, &readfds)){
-        // check if it was for closing,
-        // and also read the incoming message
-        if((valread = read(sd, buffer, 1024)) == 0){
-          // somebody disconnected, get his details and print
-          getpeername(sd, (struct sockaddr*) &address,
-              (socklen_t*) &addrlen);
-          printf("Host disconnected, ip %s, port %d\n",
-              inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+        if(FD_ISSET(sd, &readfds)){
+          // read the incoming message
+          // and check if it was for closing,
+          if((valread = read(sd, buffer, 1024)) == 0){
+            // somebody disconnected, get his details and print
+            getpeername(sd, (struct sockaddr*) &address,
+                (socklen_t*) &addrlen);
+            printf("Host disconnected, ip %s, port %d\n",
+                inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
-          // close the socket and mark as 0 in the list for reuse
-          close(sd);
-          client_socket[i] = 0;
-        }
+            // close the socket and remove from master_set
+            close(sd);
+            FD_CLR(i, &master_set);
+          }
 
-        // echo back the message that came in
-        else{
-          // set the string terminating NULL byte on the end of the data read
-          buffer[valread] = '\0';
-          // broadcast message
-          for(j = 0; j < max_clients; j++){
-            if(i == j) continue;
-            sd_to = client_socket[j];
-            send(sd_to, buffer, strlen(buffer), 0);
+          // echo back the message that came in
+          else{
+            // set the string terminating NULL byte on the end of the data read
+            buffer[valread] = '\0';
+            // broadcast message to all sockets in master_set
+            for(j = 0; j <= max_sd; j++){
+              if(j == i || j == master_socket) continue;
+              if(FD_ISSET(j, &master_set))
+                send(j, buffer, strlen(buffer), 0);
+            }
           }
         }
       }
