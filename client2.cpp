@@ -227,9 +227,9 @@ void printinput_ntoi(char *buf, int row, int col, WINDOW *win, short color)
   // network to integer
   // accepts an int divided into 4 bytes and converts it to an int
   int temp = buf[0]; temp = temp << 24;
-  temp = buf[1]; temp = temp << 16;
-  temp = buf[2]; temp = temp << 8;
-  temp = buf[3];
+  temp += buf[1]; temp = temp << 16;
+  temp += buf[2]; temp = temp << 8;
+  temp += buf[3];
   wattron(win, COLOR_PAIR(color));
   mvwprintw(win, row, col, "%d", temp);
   wrefresh(win);
