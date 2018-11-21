@@ -20,6 +20,7 @@
 int getinput(char *buffer, int *size);
 void printinput_s(char *buffer, int row, int col, WINDOW* win, short color = 0);
 void printinput_ctoi(char c, int row, int col, WINDOW *win, short color);
+void printinput_ntoi(char *buf, int row, int col, WINDOW *win, short color);
 void sig_handler(int signo);
 void p_exit(void);
 WINDOW * create_newwin(int height, int width, int starty, int startx);

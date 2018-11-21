@@ -145,7 +145,7 @@ int main(int argc, char const *argv[])
               cur_r--;
             }
             printinput_s(newusr, cur_r++, cur_c, chat_win, 2);
-            printinput_ctoi(buf_rcv[1], 1, COLS-5, info_win, 2);
+            printinput_ntoi(buf_rcv+1, 1, COLS-5, info_win, 2);
             break;
           case 'D': // user disconnected
             if(cur_r == row - 6)
@@ -154,7 +154,7 @@ int main(int argc, char const *argv[])
               cur_r--;
             }
             printinput_s(disc, cur_r++, cur_c, chat_win, 2);
-            printinput_ctoi(buf_rcv[1], 1, COLS-5, info_win, 2);
+            printinput_ntoi(buf_rcv+1, 1, COLS-5, info_win, 2);
             break;
         }
         memset(buf_rcv, 0, BUFMAX);
@@ -218,6 +218,20 @@ void printinput_ctoi(char c, int row, int col, WINDOW *win, short color)
   // accepts a character and casts it to an int
   wattron(win, COLOR_PAIR(color));
   mvwprintw(win, row, col, "%d", (unsigned)c);
+  wrefresh(win);
+  wattroff(win, COLOR_PAIR(color));
+}
+
+void printinput_ntoi(char *buf, int row, int col, WINDOW *win, short color)
+{
+  // network to integer
+  // accepts an int divided into 4 bytes and converts it to an int
+  int temp = buf[0]; temp = temp << 24;
+  temp = buf[1]; temp = temp << 16;
+  temp = buf[2]; temp = temp << 8;
+  temp = buf[3];
+  wattron(win, COLOR_PAIR(color));
+  mvwprintw(win, row, col, "%d", temp);
   wrefresh(win);
   wattroff(win, COLOR_PAIR(color));
 }

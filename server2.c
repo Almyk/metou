@@ -117,8 +117,12 @@ int main(int argc, char *argv[])
         if(j == master_socket) continue;
         if(FD_ISSET(j, &master_set))
         {
-          char tmp[] = {'C', (char)conn_count, '\0'};
-          send(j, tmp , sizeof(char)*3, 0);
+          char tmp[] = {'C',
+            (conn_count >> 24) & 0xFF,
+            (conn_count >> 16) & 0xFF,
+            (conn_count >> 8) & 0xFF,
+            conn_count & 0xFF, '\0'};
+          send(j, tmp , sizeof(tmp), 0);
         }
       }
     }
@@ -155,8 +159,12 @@ int main(int argc, char *argv[])
               if(j == master_socket) continue;
               if(FD_ISSET(j, &master_set))
               {
-                char tmp[] = {'D', (char)conn_count, '\0'};
-                send(j, tmp , sizeof(char)*3, 0);
+                char tmp[] = {'C',
+                  (conn_count >> 24) & 0xFF,
+                  (conn_count >> 16) & 0xFF,
+                  (conn_count >> 8) & 0xFF,
+                  conn_count & 0xFF, '\0'};
+                send(j, tmp , sizeof(tmp), 0);
               }
             }
           }
