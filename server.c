@@ -117,8 +117,7 @@ int main(int argc, char *argv[])
             snd_server_info(&master_set, max_sd, master_socket, conn_count, 'D');
           }
 
-          // echo back the message that came in
-          else
+          else /* handle request from the client */
           {
             // set the string terminating NULL byte on the end of the data read
             buffer[valread] = '\0';

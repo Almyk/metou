@@ -1,4 +1,4 @@
-#include "client2.h"
+#include "client.h"
 
 int main(int argc, char const *argv[])
 {
@@ -15,7 +15,6 @@ int main(int argc, char const *argv[])
   int size;
   int activity;
   int cur_r, cur_c;
-  int done = 0;
 
   // setup the rows
   getmaxyx(stdscr, row, col);
