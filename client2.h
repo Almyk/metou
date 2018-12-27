@@ -26,6 +26,7 @@ void p_exit(void);
 WINDOW * create_newwin(int height, int width, int starty, int startx);
 void scrollwin(WINDOW *win, int n);
 void rcv_stdin(char *buf, int *size, int *cur_r, int cur_c, int sock);
+void rcv_server(char *buf, int *cur_r, int cur_c);
 
 // ncurses windows
 WINDOW * input_win;

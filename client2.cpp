@@ -105,35 +105,7 @@ int main(int argc, char const *argv[])
       if((valread = read(sock, buf_rcv, BUFMAX)) > 0)
       {
         // TODO: make this into a function for handling diff IO requests
-        switch(buf_rcv[0])
-        {
-          case 'M': // incoming message
-            if(cur_r == row - 6)
-            {
-              scrollwin(chat_win, 1);
-              cur_r--;
-            }
-            printinput_s(buf_rcv+1, cur_r++, cur_c, chat_win);
-            break;
-          case 'C': // new connection count
-            if(cur_r == row - 6)
-            {
-              scrollwin(chat_win, 1);
-              cur_r--;
-            }
-            printinput_s(newusr, cur_r++, cur_c, chat_win, 2);
-            printinput_ntoi(buf_rcv+1, 1, COLS-5, info_win, 2);
-            break;
-          case 'D': // user disconnected
-            if(cur_r == row - 6)
-            {
-              scrollwin(chat_win, 1);
-              cur_r--;
-            }
-            printinput_s(disc, cur_r++, cur_c, chat_win, 2);
-            printinput_ntoi(buf_rcv+1, 1, COLS-5, info_win, 2);
-            break;
-        }
+        rcv_server(buf_rcv, &cur_r, cur_c);
         memset(buf_rcv, 0, BUFMAX);
       }
     }
@@ -265,5 +237,39 @@ void rcv_stdin(char *buf, int *size, int *cur_r, int cur_c, int sock)
       send(sock, buf, *size, 0);
     }
     move(row-1,1);
+  }
+}
+
+void rcv_server(char *buf, int *cur_r, int cur_c)
+{
+  switch(buf[0])
+  {
+    case 'M': // incoming message
+      if(*cur_r == row - 6)
+      {
+        scrollwin(chat_win, 1);
+        (*cur_r)--;
+      }
+      printinput_s(buf+1, *cur_r, cur_c, chat_win);
+      (*cur_r)++;
+      break;
+    case 'C': // new connection count
+      if(*cur_r == row - 6)
+      {
+        scrollwin(chat_win, 1);
+        cur_r--;
+      }
+      printinput_s(newusr, (*cur_r)++, cur_c, chat_win, 2);
+      printinput_ntoi(buf+1, 1, COLS-5, info_win, 2);
+      break;
+    case 'D': // user disconnected
+      if(*cur_r == row - 6)
+      {
+        scrollwin(chat_win, 1);
+        (*cur_r)--;
+      }
+      printinput_s(disc, (*cur_r)++, cur_c, chat_win, 2);
+      printinput_ntoi(buf+1, 1, COLS-5, info_win, 2);
+      break;
   }
 }
