@@ -15,8 +15,9 @@
 
 // function declarations
 int new_connection(int socket, struct sockaddr_in *address, int *addrlen);
-void snd_new_user_msg(fd_set *master_set, int max_sd, int msock, int cc);
 void add_to_master_set(fd_set *master_set, int new_socket, int *max_sd, int *cc);
+void user_disc(fd_set *master_set, int sd, int *cc, struct sockaddr_in *address, int *addrlen);
+void snd_server_info(fd_set *master_set, int max_sd, int msock, int cc, char flag);
 
 // MOTD
 char *message = "Welcome to metou (me to you) v0.1\n";
@@ -95,12 +96,11 @@ int main(int argc, char *argv[])
     {
       new_socket = new_connection(master_socket, &address, &addrlen);
       add_to_master_set(&master_set, new_socket, &max_sd, &conn_count);
-      snd_new_user_msg(&master_set, max_sd, master_socket, conn_count);
+      snd_server_info(&master_set, max_sd, master_socket, conn_count, 'C');
     }
 
     else
     {
-
     // else it is some IO operation on some other socket
       for(i = 0; i <= max_sd; i++)
       {
@@ -109,36 +109,11 @@ int main(int argc, char *argv[])
         if(FD_ISSET(sd, &readfds))
         {
           // read the incoming message
-          // and check if it was for closing,
           if((valread = read(sd, buffer, 1024)) == 0)
           {
-            // TODO: make into its own function user_disc()
-            // somebody disconnected, get his details and print
-            getpeername(sd, (struct sockaddr*) &address,
-                (socklen_t*) &addrlen);
-            printf("Host disconnected, ip %s, port %d\n",
-                inet_ntoa(address.sin_addr), ntohs(address.sin_port));
-
-            // close the socket and remove from master_set
-            close(sd);
-            FD_CLR(i, &master_set);
-            conn_count--;
-            
-            // TODO: send disconnected username when username is implemented
-            // inform users that someone disconnected
-            for(j = 0; j <= max_sd; j++)
-            {
-              if(j == master_socket) continue;
-              if(FD_ISSET(j, &master_set))
-              {
-                char tmp[] = {'D',
-                  (conn_count >> 24) & 0xFF,
-                  (conn_count >> 16) & 0xFF,
-                  (conn_count >> 8) & 0xFF,
-                  conn_count & 0xFF, '\0'};
-                send(j, tmp , sizeof(tmp), 0);
-              }
-            }
+            /* if user disconnected */
+            user_disc(&master_set, sd, &conn_count, &address, &addrlen);
+            snd_server_info(&master_set, max_sd, master_socket, conn_count, 'D');
           }
 
           // echo back the message that came in
@@ -189,17 +164,17 @@ int new_connection(int socket, struct sockaddr_in *address, int *addrlen)
   return new_socket;
 }
 
-void snd_new_user_msg(fd_set *master_set, int max_sd, int msock, int cc)
+void snd_server_info(fd_set *master_set, int max_sd, int msock, int cc, char flag)
 {
-  // TODO: send user count and new username when username is implemented
-  // inform users that a new connection was made
+  // TODO: send user count and username when username is implemented
+  // inform users that a connection was made or dropped
   int j;
   for(j = 0; j <= max_sd; j++)
   {
     if(j == msock) continue;
     if(FD_ISSET(j, master_set))
     {
-      char tmp[] = {'C',
+      char tmp[] = {flag,
         (cc >> 24) & 0xFF,
         (cc >> 16) & 0xFF,
         (cc >> 8) & 0xFF,
@@ -216,4 +191,18 @@ void add_to_master_set(fd_set *master_set, int new_socket, int *max_sd, int *cc)
     *max_sd = new_socket;
   (*cc)++;
   printf("Adding to master set of sockets as %d\n", new_socket);
+}
+
+void user_disc(fd_set *master_set, int sd, int *cc, struct sockaddr_in *address, int *addrlen)
+{
+  // somebody disconnected, get his details and print
+  getpeername(sd, (struct sockaddr*) address,
+      (socklen_t*) addrlen);
+  printf("Host disconnected, ip %s, port %d\n",
+      inet_ntoa(address->sin_addr), ntohs(address->sin_port));
+
+  // close the socket and remove from master_set
+  close(sd);
+  FD_CLR(sd, master_set);
+  (*cc)--;
 }
