@@ -96,26 +96,7 @@ int main(int argc, char const *argv[])
     // input from stdin
     if(FD_ISSET(0, &readfds))
     {
-    // TODO: make into function rcv_stdin()
-      done = getinput(buf_send, &size);
-      if(done == 1)
-      {
-        wclear(input_win);
-        box(input_win, 0, 0);
-        wrefresh(input_win);
-          
-        if(size > 0)
-        {
-          if(cur_r == row - 6)
-          {
-            scrollwin(chat_win, 1);
-            cur_r--;
-          }
-          printinput_s(buf_send+1, cur_r++, cur_c, chat_win, 1);
-          send(sock, buf_send, size, 0);
-        }
-        move(row-1,1);
-      }
+      rcv_stdin(buf_send, &size, &cur_r, cur_c, sock);
     }
 
     // else it is input from server

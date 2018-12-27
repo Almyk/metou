@@ -25,6 +25,7 @@ void sig_handler(int signo);
 void p_exit(void);
 WINDOW * create_newwin(int height, int width, int starty, int startx);
 void scrollwin(WINDOW *win, int n);
+void rcv_stdin(char *buf, int *size, int *cur_r, int cur_c, int sock);
 
 // ncurses windows
 WINDOW * input_win;
@@ -32,8 +33,8 @@ WINDOW * chat_win;
 WINDOW * info_win;
 
 // constant strings
-const char newusr[] = "New user connected";
-const char disc[] = "User disconnected";
+char newusr[] = "New user connected";
+char disc[] = "User disconnected";
 
 // max row and col values
 int row, col;
