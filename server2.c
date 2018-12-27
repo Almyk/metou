@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
               if(j == master_socket) continue;
               if(FD_ISSET(j, &master_set))
               {
-                char tmp[] = {'C',
+                char tmp[] = {'D',
                   (conn_count >> 24) & 0xFF,
                   (conn_count >> 16) & 0xFF,
                   (conn_count >> 8) & 0xFF,
