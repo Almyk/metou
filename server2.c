@@ -18,6 +18,7 @@ int new_connection(int socket, struct sockaddr_in *address, int *addrlen);
 void add_to_master_set(fd_set *master_set, int new_socket, int *max_sd, int *cc);
 void user_disc(fd_set *master_set, int sd, int *cc, struct sockaddr_in *address, int *addrlen);
 void snd_server_info(fd_set *master_set, int max_sd, int msock, int cc, char flag);
+void rcv_request(char *buf, int requester, fd_set *master_set, int msock, int max_sd);
 
 // MOTD
 char *message = "Welcome to metou (me to you) v0.1\n";
@@ -27,7 +28,7 @@ int main(int argc, char *argv[])
   int opt = TRUE;
   int master_socket, addrlen, new_socket;
   int activity, valread, sd;
-  int i, j;
+  int i;
   int max_sd;
   int conn_count = 0;
   struct sockaddr_in address;
@@ -121,17 +122,8 @@ int main(int argc, char *argv[])
           {
             // set the string terminating NULL byte on the end of the data read
             buffer[valread] = '\0';
+            rcv_request(buffer, i, &master_set, master_socket, max_sd);
 
-          // TODO: make this into a function handling diff kinds of IO requests
-            switch(buffer[0]){
-              case 'M': // broadcast message to all sockets in master_set
-                  for(j = 0; j <= max_sd; j++){
-                    if(j == i || j == master_socket) continue;
-                    if(FD_ISSET(j, &master_set))
-                      send(j, buffer, strlen(buffer), 0);
-                  }
-                  break;
-            } // switch IO
           } // else IO operation
         } // if FD_ISSET()
       } // for loop finding socket
@@ -205,4 +197,18 @@ void user_disc(fd_set *master_set, int sd, int *cc, struct sockaddr_in *address,
   close(sd);
   FD_CLR(sd, master_set);
   (*cc)--;
+}
+
+void rcv_request(char *buf, int requester, fd_set *master_set, int msock, int max_sd)
+{
+  int j;
+  switch(buf[0]){
+    case 'M': // broadcast message to all sockets in master_set
+      for(j = 0; j <= max_sd; j++){
+        if(j == requester || j == msock) continue;
+        if(FD_ISSET(j, master_set))
+          send(j, buf, strlen(buf), 0);
+      }
+      break;
+  }
 }
