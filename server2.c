@@ -16,6 +16,7 @@
 // function declarations
 int new_connection(int socket, struct sockaddr_in *address, int *addrlen);
 void snd_new_user_msg(fd_set *master_set, int max_sd, int msock, int cc);
+void add_to_master_set(fd_set *master_set, int new_socket, int *max_sd, int *cc);
 
 // MOTD
 char *message = "Welcome to metou (me to you) v0.1\n";
@@ -93,14 +94,7 @@ int main(int argc, char *argv[])
     if(FD_ISSET(master_socket, &readfds))
     {
       new_socket = new_connection(master_socket, &address, &addrlen);
-
-      // add new user to master_set
-      FD_SET(new_socket, &master_set);
-      if(new_socket > max_sd)
-        max_sd = new_socket;
-      conn_count++;
-      printf("Adding to master set of sockets as %d\n", new_socket);
-
+      add_to_master_set(&master_set, new_socket, &max_sd, &conn_count);
       snd_new_user_msg(&master_set, max_sd, master_socket, conn_count);
     }
 
@@ -213,4 +207,13 @@ void snd_new_user_msg(fd_set *master_set, int max_sd, int msock, int cc)
       send(j, tmp , sizeof(tmp), 0);
     }
   }
+}
+
+void add_to_master_set(fd_set *master_set, int new_socket, int *max_sd, int *cc)
+{
+  FD_SET(new_socket, master_set);
+  if(new_socket > *max_sd)
+    *max_sd = new_socket;
+  (*cc)++;
+  printf("Adding to master set of sockets as %d\n", new_socket);
 }
