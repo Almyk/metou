@@ -100,14 +100,10 @@ int main(int argc, char const *argv[])
     }
 
     // else it is input from server
-    else
+    else if((valread = read(sock, buf_rcv, BUFMAX)) > 0)
     {
-      if((valread = read(sock, buf_rcv, BUFMAX)) > 0)
-      {
-        // TODO: make this into a function for handling diff IO requests
-        rcv_server(buf_rcv, &cur_r, cur_c);
-        memset(buf_rcv, 0, BUFMAX);
-      }
+      rcv_server(buf_rcv, &cur_r, cur_c);
+      memset(buf_rcv, 0, BUFMAX);
     }
   }
 
