@@ -14,22 +14,17 @@ int main(int argc, char const *argv[])
   char buf_rcv[BUFMAX] = {0};
   int size;
   int activity;
-  int row, col;
   int cur_r, cur_c;
   int done = 0;
-
-  // strings
-  char newusr[] = "New user connected";
-  char disc[] = "User disconnected";
 
   // setup the rows
   getmaxyx(stdscr, row, col);
   cur_r = 1; cur_c = 1;
 
   // window creations
-  WINDOW * input_win = create_newwin(3, COLS, LINES-2, 0);
-  WINDOW * chat_win = create_newwin(LINES-5, COLS, 3, 0);
-  WINDOW * info_win = create_newwin(3, COLS, 0, 0);
+  input_win = create_newwin(3, COLS, LINES-2, 0);
+  chat_win = create_newwin(LINES-5, COLS, 3, 0);
+  info_win = create_newwin(3, COLS, 0, 0);
 
   // init scroll and colors
   scrollok(chat_win, TRUE);
@@ -101,6 +96,7 @@ int main(int argc, char const *argv[])
     // input from stdin
     if(FD_ISSET(0, &readfds))
     {
+    // TODO: make into function rcv_stdin()
       done = getinput(buf_send, &size);
       if(done == 1)
       {
@@ -264,4 +260,29 @@ void scrollwin(WINDOW *win, int n)
   wscrl(win, 1);
   box(win, 0, 0);
   wrefresh(win);
+}
+
+void rcv_stdin(char *buf, int *size, int *cur_r, int cur_c, int sock)
+{
+  static int done = 0;
+  done = getinput(buf, size);
+  if(done == 1)
+  {
+    wclear(input_win);
+    box(input_win, 0, 0);
+    wrefresh(input_win);
+
+    if(size > 0)
+    {
+      if(*cur_r == row - 6)
+      {
+        scrollwin(chat_win, 1);
+        cur_r--;
+      }
+      printinput_s(buf+1, *cur_r, cur_c, chat_win, 1);
+      (*cur_r)++;
+      send(sock, buf, *size, 0);
+    }
+    move(row-1,1);
+  }
 }
