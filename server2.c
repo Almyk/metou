@@ -13,6 +13,13 @@
 #define FALSE 0
 #define PORT 8888
 
+// function declarations
+int new_connection(int socket, struct sockaddr_in *address, int *addrlen);
+void snd_new_user_msg(fd_set *master_set, int max_sd, int msock, int cc);
+
+// MOTD
+char *message = "Welcome to metou (me to you) v0.1\n";
+
 int main(int argc, char *argv[])
 {
   int opt = TRUE;
@@ -28,9 +35,6 @@ int main(int argc, char *argv[])
   // set of socket descriptors
   fd_set master_set;
   fd_set readfds;
-
-  // a message
-  char *message = "Welcome to metou (me to you) v0.1\n";
 
   // create a master socket
   if((master_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0){
@@ -88,21 +92,7 @@ int main(int argc, char *argv[])
     // then it is an incoming connection
     if(FD_ISSET(master_socket, &readfds))
     {
-      if((new_socket = accept(master_socket,
-              (struct sockaddr *) &address, (socklen_t*) &addrlen)) < 0)
-      {
-        perror("accept");
-        exit(EXIT_FAILURE);
-      }
-
-      // inform user of socket number - used in send and receive commands
-      printf("New connection, socket fd is %d, ip is : %s, port: %d\n",
-          new_socket, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
-
-      // send new connection greeting message
-      if(send(new_socket, message, strlen(message), 0) != strlen(message))
-        perror("send");
-      puts("Welcome message sent successfully");
+      new_socket = new_connection(master_socket, &address, &addrlen);
 
       // add new user to master_set
       FD_SET(new_socket, &master_set);
@@ -110,21 +100,8 @@ int main(int argc, char *argv[])
         max_sd = new_socket;
       conn_count++;
       printf("Adding to master set of sockets as %d\n", new_socket);
-      // TODO: send user count and new username when username is implemented
-      // inform users that a new connection was made
-      for(j = 0; j <= max_sd; j++)
-      {
-        if(j == master_socket) continue;
-        if(FD_ISSET(j, &master_set))
-        {
-          char tmp[] = {'C',
-            (conn_count >> 24) & 0xFF,
-            (conn_count >> 16) & 0xFF,
-            (conn_count >> 8) & 0xFF,
-            conn_count & 0xFF, '\0'};
-          send(j, tmp , sizeof(tmp), 0);
-        }
-      }
+
+      snd_new_user_msg(&master_set, max_sd, master_socket, conn_count);
     }
 
     else
@@ -141,6 +118,7 @@ int main(int argc, char *argv[])
           // and check if it was for closing,
           if((valread = read(sd, buffer, 1024)) == 0)
           {
+            // TODO: make into its own function user_disc()
             // somebody disconnected, get his details and print
             getpeername(sd, (struct sockaddr*) &address,
                 (socklen_t*) &addrlen);
@@ -192,4 +170,47 @@ int main(int argc, char *argv[])
   }
 
   return 0;
+}
+
+
+int new_connection(int socket, struct sockaddr_in *address, int *addrlen)
+{
+  int new_socket;
+  if((new_socket = accept(socket,
+          (struct sockaddr *) address, (socklen_t*) addrlen)) < 0)
+  {
+    perror("accept");
+    exit(EXIT_FAILURE);
+  }
+
+  // inform user of socket number - used in send and receive commands
+  printf("New connection, socket fd is %d, ip is : %s, port: %d\n",
+      new_socket, inet_ntoa(address->sin_addr), ntohs(address->sin_port));
+
+  // send new connection greeting message
+  if(send(new_socket, message, strlen(message), 0) != strlen(message))
+    perror("send");
+  puts("Welcome message sent successfully");
+
+  return new_socket;
+}
+
+void snd_new_user_msg(fd_set *master_set, int max_sd, int msock, int cc)
+{
+  // TODO: send user count and new username when username is implemented
+  // inform users that a new connection was made
+  int j;
+  for(j = 0; j <= max_sd; j++)
+  {
+    if(j == msock) continue;
+    if(FD_ISSET(j, master_set))
+    {
+      char tmp[] = {'C',
+        (cc >> 24) & 0xFF,
+        (cc >> 16) & 0xFF,
+        (cc >> 8) & 0xFF,
+        cc & 0xFF, '\0'};
+      send(j, tmp , sizeof(tmp), 0);
+    }
+  }
 }
