@@ -225,7 +225,7 @@ void rcv_stdin(char *buf, int *size, int *cur_r, int cur_c, int sock)
       if(*cur_r == row - 6)
       {
         scrollwin(chat_win, 1);
-        cur_r--;
+        (*cur_r)--;
       }
       printinput_s(buf+1, *cur_r, cur_c, chat_win, 1);
       (*cur_r)++;
@@ -252,7 +252,7 @@ void rcv_server(char *buf, int *cur_r, int cur_c)
       if(*cur_r == row - 6)
       {
         scrollwin(chat_win, 1);
-        cur_r--;
+        (*cur_r)--;
       }
       printinput_s(newusr, (*cur_r)++, cur_c, chat_win, 2);
       printinput_ntoi(buf+1, 1, COLS-5, info_win, 2);
@@ -263,7 +263,8 @@ void rcv_server(char *buf, int *cur_r, int cur_c)
         scrollwin(chat_win, 1);
         (*cur_r)--;
       }
-      printinput_s(disc, (*cur_r)++, cur_c, chat_win, 2);
+      printinput_s(disc, *cur_r, cur_c, chat_win, 2);
+      (*cur_r)++;
       printinput_ntoi(buf+1, 1, COLS-5, info_win, 2);
       break;
   }
